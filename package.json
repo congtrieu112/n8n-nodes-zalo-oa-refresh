@@ -12,14 +12,14 @@
     "oauth"
   ],
   "license": "MIT",
-  "homepage": "https://github.com/yourusername/n8n-nodes-zalo-oa-refresh",
+  "homepage": "https://github.com/congtrieu112/n8n-nodes-zalo-oa-refresh",
   "author": {
-    "name": "Your Name",
-    "email": "your.email@example.com"
+    "name": "TrieuDc",
+    "email": "ittrjeu@gmail.com"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/n8n-nodes-zalo-oa-refresh.git"
+    "url": "https://github.com/congtrieu112/n8n-nodes-zalo-oa-refresh.git"
   },
   "engines": {
     "node": ">=18.10",
