@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-zalo-oa-refresh",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "n8n community node for Zalo Official Account token refresh automation",
   "keywords": [
     "n8n-community-node-package",
@@ -32,7 +32,7 @@
     "build": "tsc && gulp build:icons",
     "dev": "tsc --watch",
     "format": "prettier nodes credentials --write",
-		"lint": "eslint **/*.ts --ext .ts",
+    "lint": "eslint **/*.ts --ext .ts",
     "lintfix": "eslint nodes credentials package.json --fix",
     "prepublishOnly": "pnpm build && pnpm lint",
     "test": "jest"
