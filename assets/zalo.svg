@@ -1,7 +1,11 @@
 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="24" height="24" rx="6" fill="#0068FF"/>
-  <path d="M6 7h12v10H6z" fill="white"/>
-  <circle cx="12" cy="12" r="3" fill="#0068FF"/>
-  <path d="M12 10v4l3-2z" fill="white"/>
-  <text x="12" y="21" text-anchor="middle" fill="#0068FF" font-size="4" font-weight="bold">ZALO</text>
+  <!-- Background circle -->
+  <circle cx="12" cy="12" r="12" fill="#0068FF"/>
+  
+  <!-- White Zalo Z letter -->
+  <path d="M7 8h8l-6 6h6v2H7l6-6H7V8z" fill="white" stroke="none"/>
+  
+  <!-- Chat bubble accent -->
+  <circle cx="17" cy="7" r="2" fill="#FFD700" opacity="0.8"/>
+  <circle cx="18" cy="6" r="1" fill="white"/>
 </svg>
