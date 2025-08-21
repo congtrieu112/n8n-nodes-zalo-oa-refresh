@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-zalo-oa-refresh",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "n8n community node for Zalo Official Account token refresh automation",
   "keywords": [
     "n8n-community-node-package",

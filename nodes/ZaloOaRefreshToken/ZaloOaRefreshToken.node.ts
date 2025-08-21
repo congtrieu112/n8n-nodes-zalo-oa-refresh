@@ -62,6 +62,18 @@ export class ZaloOaRefreshToken implements INodeType {
 					},
 				},
 			},
+			{
+				displayName: 'Return Access Token',
+				name: 'returnAccessToken',
+				type: 'boolean',
+				default: false,
+				description: 'Whether to return the actual access token in response (useful for webhook endpoints)',
+				displayOptions: {
+					show: {
+						operation: ['checkStatus'],
+					},
+				},
+			},
 		],
 	};
 
@@ -136,6 +148,9 @@ export class ZaloOaRefreshToken implements INodeType {
 						);
 					}
 				} else if (operation === 'checkStatus') {
+					// Get returnAccessToken parameter for checkStatus operation
+					const returnAccessToken = this.getNodeParameter('returnAccessToken', i) as boolean;
+					
 					// Check if current token is still valid
 					const now = new Date();
 					const expiryDate = currentExpiresAt ? new Date(currentExpiresAt) : null;
@@ -144,14 +159,23 @@ export class ZaloOaRefreshToken implements INodeType {
 					const timeUntilExpiry = expiryDate ? expiryDate.getTime() - now.getTime() : 0;
 					const hoursUntilExpiry = Math.floor(timeUntilExpiry / (1000 * 60 * 60));
 
+					// Prepare response data
+					const responseJson: any = {
+						is_valid: isValid,
+						expires_at: currentExpiresAt,
+						hours_until_expiry: hoursUntilExpiry,
+						should_refresh: hoursUntilExpiry < 2, // Refresh if less than 2 hours left
+					};
+
+					// Add access token based on the returnAccessToken parameter
+					if (returnAccessToken) {
+						responseJson.access_token = currentAccessToken || null;
+					} else {
+						responseJson.current_access_token = currentAccessToken ? '***' + currentAccessToken.slice(-10) : 'Not set';
+					}
+
 					returnData.push({
-						json: {
-							is_valid: isValid,
-							expires_at: currentExpiresAt,
-							hours_until_expiry: hoursUntilExpiry,
-							should_refresh: hoursUntilExpiry < 2, // Refresh if less than 2 hours left
-							current_access_token: currentAccessToken ? '***' + currentAccessToken.slice(-10) : 'Not set',
-						},
+						json: responseJson,
 						pairedItem: {
 							item: i,
 						},
