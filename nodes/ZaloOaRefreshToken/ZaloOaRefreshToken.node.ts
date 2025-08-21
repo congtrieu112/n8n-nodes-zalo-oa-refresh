@@ -1,0 +1,181 @@
+import {
+	IExecuteFunctions,
+	INodeExecutionData,
+	INodeType,
+	INodeTypeDescription,
+	NodeOperationError,
+	NodeConnectionType,
+} from 'n8n-workflow';
+
+import axios from 'axios';
+
+export class ZaloOaRefreshToken implements INodeType {
+	description: INodeTypeDescription = {
+		displayName: 'Zalo OA Refresh Token',
+		name: 'zaloOaRefreshToken',
+		icon: 'file:zalo.svg',
+		group: ['Zalo'],
+		version: 1,
+		subtitle: 'Refresh Zalo Official Account access token',
+		description: 'Automatically refresh Zalo OA access token using refresh token',
+		defaults: {
+			name: 'Zalo OA Refresh Token',
+		},
+		inputs: [{ type: NodeConnectionType.Main }],
+		outputs: [{ type: NodeConnectionType.Main }],
+		credentials: [
+			{
+				name: 'zaloOaApi',
+				required: true,
+				displayName: 'Zalo OA API Credential',
+			},
+		],
+		properties: [
+			{
+				displayName: 'Operation',
+				name: 'operation',
+				type: 'options',
+				noDataExpression: true,
+				options: [
+					{
+						name: 'Refresh Token',
+						value: 'refreshToken',
+						description: 'Refresh the access token using refresh token',
+					},
+					{
+						name: 'Check Token Status',
+						value: 'checkStatus',
+						description: 'Check if current access token is still valid',
+					},
+				],
+				default: 'refreshToken',
+			},
+			{
+				displayName: 'Auto Update Credential',
+				name: 'autoUpdateCredential',
+				type: 'boolean',
+				default: true,
+				description: 'Whether to automatically update the credential with new tokens',
+				displayOptions: {
+					show: {
+						operation: ['refreshToken'],
+					},
+				},
+			},
+		],
+	};
+
+	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
+		const items = this.getInputData();
+		const returnData: INodeExecutionData[] = [];
+		const operation = this.getNodeParameter('operation', 0) as string;
+		const autoUpdateCredential = this.getNodeParameter('autoUpdateCredential', 0) as boolean;
+
+		// Get credentials
+		const credentials = await this.getCredentials('zaloOaApi');
+		const appId = credentials.appId as string;
+		const secretKey = credentials.secretKey as string;
+		const refreshToken = credentials.refreshToken as string;
+		const currentAccessToken = credentials.accessToken as string;
+		const currentExpiresAt = credentials.expiresAt as string;
+
+		for (let i = 0; i < items.length; i++) {
+			try {
+				if (operation === 'refreshToken') {
+					// Call Zalo refresh token API
+					const response = await axios.post(
+						'https://oauth.zaloapp.com/v4/oa/access_token',
+						new URLSearchParams({
+							refresh_token: refreshToken,
+							app_id: appId,
+							grant_type: 'refresh_token',
+						}),
+						{
+							headers: {
+								'Content-Type': 'application/x-www-form-urlencoded',
+								'secret_key': secretKey,
+							},
+						}
+					);
+
+					const data = response.data;
+
+					if (data.access_token && data.refresh_token) {
+						// Calculate expiry time
+						const expiresAt = new Date();
+						expiresAt.setSeconds(expiresAt.getSeconds() + parseInt(data.expires_in));
+
+						const tokenData = {
+							access_token: data.access_token,
+							refresh_token: data.refresh_token,
+							expires_in: data.expires_in,
+							expires_at: expiresAt.toISOString(),
+						};
+
+						// TODO: If autoUpdateCredential is true, update the credential
+						// This requires additional API calls to n8n's credential API
+						// For now, we'll return the data for manual update or use in subsequent nodes
+
+						returnData.push({
+							json: {
+								success: true,
+								message: 'Token refreshed successfully',
+								...tokenData,
+								credential_update_needed: autoUpdateCredential,
+							},
+							pairedItem: {
+								item: i,
+							},
+						});
+					} else {
+						throw new NodeOperationError(
+							this.getNode(),
+							`Failed to refresh token: ${JSON.stringify(data)}`
+						);
+					}
+				} else if (operation === 'checkStatus') {
+					// Check if current token is still valid
+					const now = new Date();
+					const expiryDate = currentExpiresAt ? new Date(currentExpiresAt) : null;
+					
+					const isValid = expiryDate ? now < expiryDate : false;
+					const timeUntilExpiry = expiryDate ? expiryDate.getTime() - now.getTime() : 0;
+					const hoursUntilExpiry = Math.floor(timeUntilExpiry / (1000 * 60 * 60));
+
+					returnData.push({
+						json: {
+							is_valid: isValid,
+							expires_at: currentExpiresAt,
+							hours_until_expiry: hoursUntilExpiry,
+							should_refresh: hoursUntilExpiry < 2, // Refresh if less than 2 hours left
+							current_access_token: currentAccessToken ? '***' + currentAccessToken.slice(-10) : 'Not set',
+						},
+						pairedItem: {
+							item: i,
+						},
+					});
+				}
+			} catch (error) {
+				const errorMessage = error instanceof Error ? error.message : String(error);
+				if (this.continueOnFail()) {
+					returnData.push({
+						json: {
+							error: errorMessage,
+							success: false,
+						},
+						pairedItem: {
+							item: i,
+						},
+					});
+				} else {
+					throw new NodeOperationError(
+						this.getNode(),
+						`Failed to execute operation '${operation}': ${errorMessage}`
+					);
+				}
+			}
+		}
+
+		return [returnData];
+	}
+}

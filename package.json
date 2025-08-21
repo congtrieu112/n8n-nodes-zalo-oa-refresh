@@ -1,0 +1,71 @@
+{
+  "name": "n8n-nodes-zalo-oa-refresh",
+  "version": "1.0.0",
+  "description": "n8n community node for Zalo Official Account token refresh automation",
+  "keywords": [
+    "n8n-community-node-package",
+    "n8n",
+    "zalo",
+    "zalo-oa",
+    "token-refresh",
+    "automation",
+    "oauth"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/yourusername/n8n-nodes-zalo-oa-refresh",
+  "author": {
+    "name": "Your Name",
+    "email": "your.email@example.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/n8n-nodes-zalo-oa-refresh.git"
+  },
+  "engines": {
+    "node": ">=18.10",
+    "pnpm": ">=9.1"
+  },
+  "packageManager": "pnpm@9.1.4",
+  "main": "index.js",
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "build": "tsc && gulp build:icons",
+    "dev": "tsc --watch",
+    "format": "prettier nodes credentials --write",
+    "lint": "eslint nodes credentials package.json",
+    "lintfix": "eslint nodes credentials package.json --fix",
+    "prepublishOnly": "pnpm build && pnpm lint",
+    "test": "jest"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      "dist/credentials/ZaloOaApi.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/ZaloOaRefreshToken/ZaloOaRefreshToken.node.js"
+    ]
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/parser": "^7.15.0",
+    "eslint": "^8.56.0",
+    "eslint-plugin-n8n-nodes-base": "^1.16.1",
+    "gulp": "^4.0.2",
+    "prettier": "^3.3.2",
+    "typescript": "^5.5.3",
+    "jest": "^29.7.0",
+    "@types/jest": "^29.5.0"
+  },
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  },
+  "dependencies": {
+    "axios": "^1.6.0"
+  }
+}

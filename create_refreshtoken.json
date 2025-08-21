@@ -1,0 +1,161 @@
+{
+    "name": "Zalo – Refresh Token (Cron, Function v1)",
+    "nodes": [
+      {
+        "parameters": {
+          "triggerTimes": {
+            "item": [
+              {
+                "mode": "everyX",
+                "unit": "hours",
+                "value": 3
+              }
+            ]
+          }
+        },
+        "type": "n8n-nodes-base.cron",
+        "typeVersion": 1,
+        "position": [-520, 260],
+        "name": "Cron"
+      },
+      {
+        "parameters": {
+          "functionCode": "const data = getWorkflowStaticData('global');\n// seed lần đầu từ ENV nếu chưa có\nif (!data.refresh_token && $env.ZALO_REFRESH_TOKEN) {\n  data.refresh_token = $env.ZALO_REFRESH_TOKEN;\n}\nconst now = Math.floor(Date.now()/1000);\nconst safety = 3600; // 60 phút\nconst expires_at = Number(data.expires_at || 0);\nconst shouldRefresh = !expires_at || now >= (expires_at - safety);\nreturn [{ json: {\n  refresh_token: data.refresh_token,\n  expires_at: expires_at,\n  shouldRefresh\n}}];"
+        },
+        "type": "n8n-nodes-base.function",
+        "typeVersion": 1,
+        "position": [-320, 260],
+        "name": "Load / Decide"
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "boolean": [
+              {
+                "value1": "={{$json.shouldRefresh}}"
+              }
+            ]
+          }
+        },
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 1,
+        "position": [-130, 260],
+        "name": "Need Refresh?"
+      },
+      {
+        "parameters": {
+          "url": "https://oauth.zaloapp.com/v4/oa/access_token",
+          "responseFormat": "json",
+          "options": {
+            "bodyContentType": "form-urlencoded"
+          },
+          "headerParametersUi": {
+            "parameter": [
+              {
+                "name": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              },
+              {
+                "name": "secret_key",
+                "value": "={{$env.ZALO_SECRET_KEY || \"<PUT_SECRET_KEY_HERE>\"}}"
+              }
+            ]
+          },
+          "sendBody": true,
+          "jsonParameters": false,
+          "bodyParametersUi": {
+            "parameter": [
+              {
+                "name": "grant_type",
+                "value": "refresh_token"
+              },
+              {
+                "name": "app_id",
+                "value": "={{$env.ZALO_APP_ID || \"<PUT_APP_ID_HERE>\"}}"
+              },
+              {
+                "name": "refresh_token",
+                "value": "={{$json.refresh_token}}"
+              }
+            ]
+          }
+        },
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 2,
+        "position": [80, 170],
+        "name": "HTTP Refresh"
+      },
+      {
+        "parameters": {
+          "functionCode": "// Function v1 – lưu token vào Static Data của workflow\nconst data = getWorkflowStaticData('global');\nconst now = Math.floor(Date.now()/1000);\nconst res = items[0].json || {};\nif (!res.access_token || !res.expires_in) {\n  throw new Error('Refresh failed: missing access_token/expires_in');\n}\nif (res.refresh_token) data.refresh_token = res.refresh_token; // nếu không trả thì giữ cũ\ndata.access_token = res.access_token;\nconst ttl = parseInt(res.expires_in, 10);\nconst slack = 300; // 5 phút an toàn\ndata.expires_at = now + ttl - slack;\nreturn [{ json: { access_token: data.access_token, refresh_token: data.refresh_token, expires_at: data.expires_at } }];"
+        },
+        "type": "n8n-nodes-base.function",
+        "typeVersion": 1,
+        "position": [280, 170],
+        "name": "Save Tokens"
+      },
+      {
+        "parameters": {
+          "functionCode": "return [{ json: { status: 'skip_refresh_still_valid' } }];"
+        },
+        "type": "n8n-nodes-base.function",
+        "typeVersion": 1,
+        "position": [80, 360],
+        "name": "Skip (Still Valid)"
+      }
+    ],
+    "connections": {
+      "Load / Decide": {
+        "main": [
+          [
+            {
+              "node": "Need Refresh?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Cron": {
+        "main": [
+          [
+            {
+              "node": "Load / Decide",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Need Refresh?": {
+        "main": [
+          [
+            {
+              "node": "HTTP Refresh",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Skip (Still Valid)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "HTTP Refresh": {
+        "main": [
+          [
+            {
+              "node": "Save Tokens",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  }
+  
