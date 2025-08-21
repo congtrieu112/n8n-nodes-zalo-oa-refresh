@@ -69,7 +69,6 @@ export class ZaloOaRefreshToken implements INodeType {
 		const items = this.getInputData();
 		const returnData: INodeExecutionData[] = [];
 		const operation = this.getNodeParameter('operation', 0) as string;
-		const autoUpdateCredential = this.getNodeParameter('autoUpdateCredential', 0) as boolean;
 
 		// Get credentials
 		const credentials = await this.getCredentials('zaloOaApi');
@@ -82,6 +81,9 @@ export class ZaloOaRefreshToken implements INodeType {
 		for (let i = 0; i < items.length; i++) {
 			try {
 				if (operation === 'refreshToken') {
+					// Get autoUpdateCredential parameter for refreshToken operation
+					const autoUpdateCredential = this.getNodeParameter('autoUpdateCredential', i) as boolean;
+					
 					// Call Zalo refresh token API
 					const response = await axios.post(
 						'https://oauth.zaloapp.com/v4/oa/access_token',

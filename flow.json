@@ -1,0 +1,42 @@
+{
+	"name": "Zalo OA Token Refresh Automation",
+	"nodes": [
+		{
+			"name": "Schedule Every 23 Hours",
+			"type": "n8n-nodes-base.scheduleTrigger",
+			"parameters": {
+				"rule": {
+					"interval": [{ "field": "hours", "hoursInterval": 23 }]
+				}
+			}
+		},
+		{
+			"name": "Check Token Status",
+			"type": "n8n-nodes-zalo-oa-refresh.zaloOaRefreshToken",
+			"parameters": {
+				"operation": "checkStatus"
+			}
+		},
+		{
+			"name": "Refresh if Needed",
+			"type": "n8n-nodes-base.if",
+			"parameters": {
+				"conditions": {
+					"boolean": [
+						{
+							"value1": "={{$json.should_refresh}}",
+							"value2": true
+						}
+					]
+				}
+			}
+		},
+		{
+			"name": "Refresh Token",
+			"type": "n8n-nodes-zalo-oa-refresh.zaloOaRefreshToken",
+			"parameters": {
+				"operation": "refreshToken"
+			}
+		}
+	]
+}

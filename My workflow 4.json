@@ -1,0 +1,142 @@
+{
+  "name": "My workflow 4",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 23
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -320,
+        -32
+      ],
+      "id": "bd6a15d9-6326-4020-a27e-b3c97dcc5359",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "checkStatus"
+      },
+      "type": "n8n-nodes-zalo-oa-refresh.zaloOaRefreshToken",
+      "typeVersion": 1,
+      "position": [
+        -112,
+        -32
+      ],
+      "id": "5f69a531-449a-4ecd-ba70-2afd99f9f99f",
+      "name": "Zalo OA Refresh Token",
+      "credentials": {
+        "zaloOaApi": {
+          "id": "qjV6TrAIbf7HvjqT",
+          "name": "Zalo Official Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "669dacf9-bd45-4909-8963-a2bb6a0f5ee7",
+              "leftValue": "=={{$json.should_refresh}}",
+              "rightValue": "=true",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        96,
+        -32
+      ],
+      "id": "bd2c79e8-df32-481d-b9ec-a3cf4f57af92",
+      "name": "If"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-zalo-oa-refresh.zaloOaRefreshToken",
+      "typeVersion": 1,
+      "position": [
+        320,
+        -96
+      ],
+      "id": "4c6762f4-7fe3-4c7c-9e39-316e9c280c5c",
+      "name": "Zalo OA Refresh Token1",
+      "credentials": {
+        "zaloOaApi": {
+          "id": "qjV6TrAIbf7HvjqT",
+          "name": "Zalo Official Account account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Zalo OA Refresh Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zalo OA Refresh Token": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Zalo OA Refresh Token1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "8355a0db-70a6-489d-b572-db9299fe52f3",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e769b1c1e58082268644416c2cb0c2cbee408c602e1cd3d161799c7f44684952"
+  },
+  "id": "UM5cQ6je8cEKwQlZ",
+  "tags": []
+}
