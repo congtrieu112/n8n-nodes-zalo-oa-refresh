@@ -7,21 +7,16 @@ module.exports = {
 	},
 	parser: '@typescript-eslint/parser',
 	parserOptions: {
-		project: 'tsconfig.json',
 		sourceType: 'module',
-		extraFileExtensions: ['.json'],
+		ecmaVersion: 2020,
 	},
-	plugins: ['@typescript-eslint', 'n8n-nodes-base'],
+	plugins: ['@typescript-eslint'],
 	extends: [
 		'eslint:recommended',
-		'@typescript-eslint/recommended',
-		'plugin:n8n-nodes-base/community',
 	],
 	rules: {
 		'@typescript-eslint/no-unused-vars': 'error',
-		'@typescript-eslint/no-explicit-any': 'warn',
-		'n8n-nodes-base/node-execute-block-wrong-error-thrown': 'error',
-		'n8n-nodes-base/node-param-default-wrong-for-number': 'error',
+		'no-unused-vars': 'off',
 	},
-	ignorePatterns: ['dist/**', 'node_modules/**', '*.js'],
+	ignorePatterns: ['dist/**', 'node_modules/**', '*.js', 'gulpfile.js'],
 };

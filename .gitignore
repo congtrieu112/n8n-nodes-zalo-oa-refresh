@@ -106,9 +106,4 @@ tmp/
 temp/
 
 # Local development files
-package-community.json
-workflows/
-utils/
-install-n8n-nodes.sh
-QUICK_START.md
-README_ZALO_TOKEN_REFRESH.md
+*.local
