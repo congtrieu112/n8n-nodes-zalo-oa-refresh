@@ -47,6 +47,11 @@ export class ZaloOaRefreshToken implements INodeType {
 						value: 'checkStatus',
 						description: 'Check if current access token is still valid',
 					},
+					{
+						name: 'Update Credential from Data',
+						value: 'updateCredential',
+						description: 'Update credential with new token data from previous refresh',
+					},
 				],
 				default: 'refreshToken',
 			},
@@ -147,74 +152,95 @@ export class ZaloOaRefreshToken implements INodeType {
 							expires_at: expiresAt.toISOString(),
 						};
 
-						// Auto-update credential if requested
+						// Auto-update credential if requested - Return credential data in a format n8n can understand
 						let credentialUpdateStatus = 'not_attempted';
+						let credentialUpdateData = null;
+						
 						if (autoUpdateCredential) {
 							try {
 								// Get current credential details
 								const nodeCredentials = this.getNode().credentials;
 								if (nodeCredentials && nodeCredentials['zaloOaApi']) {
-									const credentialId = nodeCredentials['zaloOaApi'].id;
+									credentialUpdateStatus = 'prepared';
 									
-									if (credentialId) {
-										// Prepare credential update data
-										const updatedCredentialData = {
-											...credentials,
+									// Prepare updated credential data following n8n credential structure
+									credentialUpdateData = {
+										credentialId: nodeCredentials['zaloOaApi'].id,
+										credentialName: nodeCredentials['zaloOaApi'].name,
+										credentialType: 'zaloOaApi',
+										updatedFields: {
 											accessToken: data.access_token,
 											refreshToken: data.refresh_token,
 											expiresAt: expiresAt.toISOString(),
 											updatedAt: now
-										};
-
-										// Use helpers.httpRequest to call n8n internal API
-										const updateResponse = await this.helpers.httpRequest({
-											method: 'PATCH',
-											url: `http://localhost:5678/api/v1/credentials/${credentialId}`,
-											headers: {
-												'Content-Type': 'application/json',
-											},
-											body: JSON.stringify({
-												name: nodeCredentials['zaloOaApi'].name,
-												type: 'zaloOaApi',
-												data: updatedCredentialData
-											}),
-											json: true,
-											ignoreHttpStatusErrors: true
-										});
-
-										if (updateResponse.statusCode && updateResponse.statusCode < 300) {
-											credentialUpdateStatus = 'success';
-											console.log(`[${now}] Credential updated successfully via API`);
-										} else {
-											credentialUpdateStatus = 'api_error';
-											console.log(`[${now}] Credential update failed - Status: ${updateResponse.statusCode}`, updateResponse.body);
+										},
+										// Include all original credential data
+										fullCredentialData: {
+											appId: credentials.appId,
+											secretKey: credentials.secretKey,
+											accessToken: data.access_token,
+											refreshToken: data.refresh_token,
+											expiresAt: expiresAt.toISOString(),
+											updatedAt: now
 										}
-									} else {
-										credentialUpdateStatus = 'no_credential_id';
-										console.log(`[${now}] Cannot update credential - No credential ID found`);
-									}
+									};
+									
+									console.log(`[${now}] Credential update data prepared for: ${nodeCredentials['zaloOaApi'].name}`);
+									console.log(`[${now}] Credential ID: ${nodeCredentials['zaloOaApi'].id}`);
 								} else {
 									credentialUpdateStatus = 'no_credentials_found';
-									console.log(`[${now}] Cannot update credential - No zaloOaApi credentials found`);
+									console.log(`[${now}] Cannot prepare credential update - No zaloOaApi credentials found`);
 								}
 							} catch (updateError) {
 								credentialUpdateStatus = 'error';
-								console.log(`[${now}] Credential update error:`, updateError);
+								console.log(`[${now}] Credential update preparation error:`, updateError);
 							}
 						}
 
 						console.log(`[${now}] New access_token: ${data.access_token ? data.access_token.substring(0, 20) + '...' : 'Not received'}`);
 						console.log(`[${now}] New refresh_token: ${data.refresh_token ? data.refresh_token.substring(0, 20) + '...' : 'Not received'}`);
 						
+						// Create detailed message with copy-paste instructions
+						const nodeCredentials = this.getNode().credentials;
+						const credentialName = nodeCredentials && nodeCredentials['zaloOaApi'] 
+							? nodeCredentials['zaloOaApi'].name 
+							: 'Zalo OA API Credential';
+						
+						const updateInstructions = `
+🔄 TOKEN REFRESH SUCCESSFUL!
+
+⚠️ IMPORTANT: You must manually update the credential to prevent future errors.
+
+📋 COPY these values to credential "${credentialName}":
+
+1. Access Token: ${data.access_token}
+2. Refresh Token: ${data.refresh_token}
+3. Token Expires At: ${expiresAt.toISOString()}
+
+🔗 Go to: Credentials > "${credentialName}" > Edit
+📝 Paste the new Access Token and Refresh Token
+💾 Click Save
+
+⏰ Token expires: ${expiresAt.toLocaleString()}
+🔄 Last refresh: ${new Date(now).toLocaleString()}
+
+Without this manual update, the next refresh will fail with the old token!`;
+
 						returnData.push({
 							json: {
 								success: true,
-								message: 'Token refreshed successfully',
+								message: 'Token refreshed successfully - MANUAL UPDATE REQUIRED',
+								update_instructions: updateInstructions,
 								...tokenData,
-								credential_update_needed: autoUpdateCredential,
+								credential_update_needed: true,
 								credential_update_status: credentialUpdateStatus,
+								credential_name: credentialName,
 								credential_last_updated: credentialUpdatedAt,
 								refresh_executed_at: now,
+								// Direct field mapping for easy copy-paste
+								new_access_token: data.access_token,
+								new_refresh_token: data.refresh_token,
+								new_expires_at: expiresAt.toISOString(),
 							},
 							pairedItem: {
 								item: i,
