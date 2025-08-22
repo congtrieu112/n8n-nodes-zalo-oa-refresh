@@ -103,6 +103,15 @@ export class ZaloOaRefreshToken implements INodeType {
 				const refreshToken = credentials.refreshToken as string;
 				const currentAccessToken = credentials.accessToken as string;
 				const currentExpiresAt = credentials.expiresAt as string;
+				const credentialUpdatedAt = credentials.updatedAt as string || 'Unknown';
+				
+				// Debug logging
+				const now = new Date().toISOString();
+				console.log(`[${now}] Zalo OA Refresh Token - Operation: ${operation}`);
+				console.log(`[${now}] Current refresh_token: ${refreshToken ? refreshToken.substring(0, 20) + '...' : 'Not set'}`);
+				console.log(`[${now}] Current access_token: ${currentAccessToken ? currentAccessToken.substring(0, 20) + '...' : 'Not set'}`);
+				console.log(`[${now}] Credential last updated: ${credentialUpdatedAt}`);
+				console.log(`[${now}] Token expires at: ${currentExpiresAt}`);
 
 				if (operation === 'refreshToken') {
 					// Get autoUpdateCredential parameter for refreshToken operation
@@ -142,12 +151,17 @@ export class ZaloOaRefreshToken implements INodeType {
 						// This requires additional API calls to n8n's credential API
 						// For now, we'll return the data for manual update or use in subsequent nodes
 
+						console.log(`[${now}] New access_token: ${data.access_token ? data.access_token.substring(0, 20) + '...' : 'Not received'}`);
+						console.log(`[${now}] New refresh_token: ${data.refresh_token ? data.refresh_token.substring(0, 20) + '...' : 'Not received'}`);
+						
 						returnData.push({
 							json: {
 								success: true,
 								message: 'Token refreshed successfully',
 								...tokenData,
 								credential_update_needed: autoUpdateCredential,
+								credential_last_updated: credentialUpdatedAt,
+								refresh_executed_at: now,
 							},
 							pairedItem: {
 								item: i,
@@ -177,6 +191,8 @@ export class ZaloOaRefreshToken implements INodeType {
 						expires_at: currentExpiresAt,
 						hours_until_expiry: hoursUntilExpiry,
 						should_refresh: hoursUntilExpiry < 2, // Refresh if less than 2 hours left
+						credential_last_updated: credentialUpdatedAt,
+						check_executed_at: now.toISOString(),
 					};
 
 					// Add access token based on the returnAccessToken parameter
