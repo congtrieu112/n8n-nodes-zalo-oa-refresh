@@ -1,0 +1,83 @@
+{
+  "name": "UnimTX - HMAC SMS (HTTP Request)",
+  "nodes": [
+    {
+      "parameters": {
+        "functionCode": "// Sign HMAC-SHA256 for UnimTX (Function v1)\n// Fallback: use ENV if available, else defaults below\nconst defaults = {\n  accessKeyId: 'WxcuFwCfWxcaJMbLWUKKTu',        // <-- replace if needed\n  accessKeySecret: 'REPLACE_WITH_SECRET',       // <-- replace with your secret\n  action: 'sms.message.send'\n};\n\nconst accessKeyId = $env.UNIMTX_ACCESS_KEY_ID || defaults.accessKeyId;\nconst accessKeySecret = $env.UNIMTX_ACCESS_KEY_SECRET || defaults.accessKeySecret;\nconst action = $env.UNIMTX_ACTION || defaults.action;\n\n// timestamp (ms) & random nonce (16 hex)\nconst timestamp = Date.now().toString();\nfunction randomNonce(len = 16) {\n  const chars = 'abcdef0123456789';\n  let s = '';\n  for (let i = 0; i < len; i++) s += chars[Math.floor(Math.random() * chars.length)];\n  return s;\n}\nconst nonce = randomNonce(16);\n\n// Compose parameters (exclude signature here)\nconst params = {\n  accessKeyId,\n  action,\n  algorithm: 'hmac-sha256',\n  timestamp,\n  nonce,\n};\n\n// Build canonical string: ASCII sort by key, join key=value pairs with &\nconst keys = Object.keys(params).sort();\nconst canonical = keys.map(k => `${k}=${params[k]}`).join('&');\n\n// Compute HMAC-SHA256 (Base64). Function v1 supports require for core modules.\nconst crypto = require('crypto');\nconst signatureBase64 = crypto.createHmac('sha256', accessKeySecret).update(canonical).digest('base64');\n\nreturn [{ json: { ...params, signature: signatureBase64 } }];"
+      },
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        80
+      ],
+      "name": "Sign HMAC"
+    },
+    {
+      "parameters": {
+        "url": "https://api.unimtx.com/",
+        "responseFormat": "json",
+        "options": {},
+        "headerParametersUi": {
+          "parameter": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "jsonParameters": true,
+        "bodyParametersJson": "{\"to\": \"+84772815330\", \"signature\": \"8secon\", \"templateId\": \"pub_otp_en_basic2\", \"templateData\": {\"code\": \"232132\"}}",
+        "queryParametersUi": {
+          "parameter": [
+            {
+              "name": "action",
+              "value": "={{$json.action}}"
+            },
+            {
+              "name": "accessKeyId",
+              "value": "={{$json.accessKeyId}}"
+            },
+            {
+              "name": "algorithm",
+              "value": "={{$json.algorithm}}"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{$json.timestamp}}"
+            },
+            {
+              "name": "nonce",
+              "value": "={{$json.nonce}}"
+            },
+            {
+              "name": "signature",
+              "value": "={{$json.signature}}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        80,
+        80
+      ],
+      "name": "HTTP Request (Send SMS)"
+    }
+  ],
+  "connections": {
+    "Sign HMAC": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request (Send SMS)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

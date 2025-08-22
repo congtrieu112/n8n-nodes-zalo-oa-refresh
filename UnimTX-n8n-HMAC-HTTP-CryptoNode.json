@@ -1,0 +1,174 @@
+{
+  "name": "UnimTX - HMAC SMS (No require, uses Crypto node)",
+  "nodes": [
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "accessKeyId",
+              "value": "={{$env.UNIMTX_ACCESS_KEY_ID || 'WxcuFwCfWxcaJMbLWUKKTu'}}"
+            },
+            {
+              "name": "action",
+              "value": "={{$env.UNIMTX_ACTION || 'sms.message.send'}}"
+            },
+            {
+              "name": "algorithm",
+              "value": "hmac-sha256"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{ Date.now().toString() }}"
+            },
+            {
+              "name": "nonce",
+              "value": "={{ (Math.random().toString(16).slice(2)+Math.random().toString(16).slice(2)).slice(0,16) }}"
+            },
+            {
+              "name": "to",
+              "value": "+84772815330"
+            },
+            {
+              "name": "smsBrandSignature",
+              "value": "8secon"
+            },
+            {
+              "name": "templateId",
+              "value": "pub_otp_en_basic2"
+            },
+            {
+              "name": "code",
+              "value": "232132"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        -380,
+        100
+      ],
+      "name": "Build Params"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Build canonical string from current JSON (exclude signature fields)\nconst p = items[0].json;\nconst keys = Object.keys(p)\n  .filter(k => !['canonical','signature','smsBrandSignature','to','templateId','code'].includes(k))\n  .sort();\nconst canonical = keys.map(k => `${k}=${p[k]}`).join('&');\nreturn [{ json: { ...p, canonical } }];"
+      },
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -140,
+        100
+      ],
+      "name": "Canonicalize"
+    },
+    {
+      "parameters": {
+        "operation": "hmac",
+        "encoding": "base64",
+        "type": "sha256",
+        "valueFieldName": "canonical",
+        "secret": "={{$env.UNIMTX_ACCESS_KEY_SECRET || 'REPLACE_WITH_SECRET'}}",
+        "outputFieldName": "signature"
+      },
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 1,
+      "position": [
+        80,
+        100
+      ],
+      "name": "Crypto (HMAC-SHA256)"
+    },
+    {
+      "parameters": {
+        "url": "https://api.unimtx.com/",
+        "responseFormat": "json",
+        "options": {},
+        "headerParametersUi": {
+          "parameter": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "jsonParameters": true,
+        "bodyParametersJson": "{\"to\": \"={{$json.to}}\", \"signature\": \"={{$json.smsBrandSignature}}\", \"templateId\": \"={{$json.templateId}}\", \"templateData\": {\"code\": \"={{$json.code}}\"}}",
+        "queryParametersUi": {
+          "parameter": [
+            {
+              "name": "action",
+              "value": "={{$json.action}}"
+            },
+            {
+              "name": "accessKeyId",
+              "value": "={{$json.accessKeyId}}"
+            },
+            {
+              "name": "algorithm",
+              "value": "={{$json.algorithm}}"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{$json.timestamp}}"
+            },
+            {
+              "name": "nonce",
+              "value": "={{$json.nonce}}"
+            },
+            {
+              "name": "signature",
+              "value": "={{$json.signature}}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        320,
+        100
+      ],
+      "name": "HTTP Request (Send SMS)"
+    }
+  ],
+  "connections": {
+    "Build Params": {
+      "main": [
+        [
+          {
+            "node": "Canonicalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Canonicalize": {
+      "main": [
+        [
+          {
+            "node": "Crypto (HMAC-SHA256)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crypto (HMAC-SHA256)": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request (Send SMS)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

@@ -1,0 +1,320 @@
+{
+  "name": "My workflow 3 - FIXED",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "afa2b24c-22c6-4522-8574-f846c548a4c6",
+        "authentication": "jwtAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -496,
+        -256
+      ],
+      "id": "7eed4353-b717-43c3-88d5-b8ff634b037f",
+      "name": "Webhook",
+      "webhookId": "afa2b24c-22c6-4522-8574-f846c548a4c6",
+      "credentials": {
+        "jwtAuth": {
+          "id": "afttWzMo787c3Cjr",
+          "name": "JWT Auth SMS 8secon"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "checkStatus",
+        "returnAccessToken": true
+      },
+      "type": "n8n-nodes-zalo-oa-refresh.zaloOaRefreshToken",
+      "typeVersion": 1,
+      "position": [
+        -288,
+        -352
+      ],
+      "id": "96d1b413-acaa-454f-a3d3-a88f12f42ac7",
+      "name": "Zalo OA Refresh Token",
+      "credentials": {
+        "zaloOaApi": {
+          "id": "qjV6TrAIbf7HvjqT",
+          "name": "Zalo Official Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://business.openapi.zalo.me/message/template",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $json.access_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "jsonBody": "={\n  \"phone\": \"{{ $('Webhook').item.json.body.phone }}\",\n  \"template_id\": \"479696\",\n  \"template_data\": {\n    \"otp\": \"{{ $('Webhook').item.json.body.code }}\"\n  },\n  \"tracking_id\": \"otp_signup_8secon_v1_0001\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -48,
+        -336
+      ],
+      "id": "60ccacda-aec1-45bb-ac7b-eb43561a3dfc",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b17f48eb-6a93-4e8d-9b89-4e04c2129f40",
+              "leftValue": "={{ $json.error.toString() }}",
+              "rightValue": "=-124",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        192,
+        -368
+      ],
+      "id": "b2bab7dc-b0ce-4ad1-b9af-95d03963912c",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "accessKeyId",
+              "value": "={{$env.UNIMTX_ACCESS_KEY_ID || 'WxcuFwCfWxcaJMbLWUKKTu'}}"
+            },
+            {
+              "name": "action",
+              "value": "={{$env.UNIMTX_ACTION || 'sms.message.send'}}"
+            },
+            {
+              "name": "algorithm",
+              "value": "hmac-sha256"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{ Date.now().toString() }}"
+            },
+            {
+              "name": "nonce",
+              "value": "={{ (Math.random().toString(16).slice(2)+Math.random().toString(16).slice(2)).slice(0,16) }}"
+            },
+            {
+              "name": "to",
+              "value": "=+{{ $('Webhook').item.json.body.phone }}"
+            },
+            {
+              "name": "smsBrandSignature",
+              "value": "8secon"
+            },
+            {
+              "name": "templateId",
+              "value": "pub_otp_en_basic2"
+            },
+            {
+              "name": "code",
+              "value": "={{ $('Webhook').item.json.body.code || Math.floor(Math.random() * 9000 + 1000).toString() }}"
+            },
+            {
+              "name": "accessKeySecret",
+              "value": "={{$env.UNIMTX_ACCESS_KEY_SECRET || 'afYaNCmTc5hs4CkvimyvBeuy4o2UnF'}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        560,
+        -400
+      ],
+      "name": "Build Params",
+      "id": "6cc498d1-57f2-45f3-9036-d8eeaf13bc7e"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Build canonical string from current JSON (exclude non-signature fields)\nconst p = items[0].json;\nconst keys = Object.keys(p)\n  .filter(k => !['canonical','signature','smsBrandSignature','to','templateId','code','accessKeySecret'].includes(k))\n  .sort();\nconst canonical = keys.map(k => `${k}=${p[k]}`).join('&');\nreturn [{ json: { ...p, canonical } }];"
+      },
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        336,
+        -112
+      ],
+      "name": "Canonicalize",
+      "id": "ef49b817-25b6-48b8-8d54-27ec74ada415"
+    },
+    {
+      "parameters": {
+        "action": "hmac",
+        "type": "SHA256",
+        "value": "={{ $json.canonical }}",
+        "dataPropertyName": "signature",
+        "secret": "={{ $json.accessKeySecret }}",
+        "encoding": "base64"
+      },
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 1,
+      "position": [
+        560,
+        -112
+      ],
+      "name": "Crypto (HMAC-SHA256)",
+      "id": "b99c125a-4a2c-49fc-b205-cd4df6601329"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.unimtx.com/?action={{ $json.action }}&accessKeyId={{ $json.accessKeyId }}&algorithm={{ $json.algorithm }}&timestamp={{ $json.timestamp }}&nonce={{ $json.nonce }}&signature={{encodeURIComponent($json.signature)}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "jsonBody": "={\n  to: $json.to,\n  signature: $json.smsBrandSignature,\n  templateId: $json.templateId,\n  templateData: {\n    code: $json.code\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        800,
+        -112
+      ],
+      "name": "HTTP Request (Send SMS)",
+      "id": "ff188f49-9d74-4b78-8ecd-2992bc48edcf"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Zalo OA Refresh Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zalo OA Refresh Token": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Build Params",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Params": {
+      "main": [
+        [
+          {
+            "node": "Canonicalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Canonicalize": {
+      "main": [
+        [
+          {
+            "node": "Crypto (HMAC-SHA256)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crypto (HMAC-SHA256)": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request (Send SMS)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "ca222cd3-9803-4fc8-bb31-c1812ceed998",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e769b1c1e58082268644416c2cb0c2cbee408c602e1cd3d161799c7f44684952"
+  },
+  "id": "oMnwyxL0zwW1BnaG",
+  "tags": []
+}

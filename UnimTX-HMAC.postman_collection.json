@@ -1,0 +1,113 @@
+{
+  "info": {
+    "name": "UnimTX HMAC Example",
+    "_postman_id": "e8620a08-9cd4-4616-9022-394b290602a3",
+    "description": "Example request using HMAC-SHA256 signature in URL query parameters.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "HMAC GET Example",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "query": [
+            {
+              "key": "action",
+              "value": "{{action}}",
+              "description": "API action name"
+            },
+            {
+              "key": "accessKeyId",
+              "value": "{{accessKeyId}}"
+            },
+            {
+              "key": "algorithm",
+              "value": "{{algorithm}}"
+            },
+            {
+              "key": "timestamp",
+              "value": "{{timestamp}}"
+            },
+            {
+              "key": "nonce",
+              "value": "{{nonce}}"
+            },
+            {
+              "key": "signature",
+              "value": "{{signature}}"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Pre-request script to compute HMAC-SHA256 signature (Base64)",
+              "const accessKeyId = pm.environment.get('accessKeyId');",
+              "const accessKeySecret = pm.environment.get('accessKeySecret');",
+              "const action = pm.environment.get('action');",
+              "",
+              "// timestamp in ms and random hex nonce",
+              "const timestamp = Date.now().toString();",
+              "function randomNonce(len = 16) {",
+              "  const chars = 'abcdef0123456789';",
+              "  let s = '';",
+              "  for (let i = 0; i < len; i++) s += chars[Math.floor(Math.random() * chars.length)];",
+              "  return s;",
+              "}",
+              "const nonce = randomNonce(16);",
+              "",
+              "// Collect all query params except signature; include required ones",
+              "let params = {",
+              "  accessKeyId: accessKeyId,",
+              "  action: action,",
+              "  algorithm: 'hmac-sha256',",
+              "  timestamp: timestamp,",
+              "  nonce: nonce",
+              "};",
+              "",
+              "// Merge any existing query params from the request (excluding signature)",
+              "pm.request.url.query.each(q => {",
+              "  if (q && q.key && q.key !== 'signature') {",
+              "    let val = q.value;",
+              "    // Resolve {{var}} placeholders if present",
+              "    val = val && val.replace(/\\{\\{([^}]+)\\}\\}/g, (_, name) => pm.variables.get(name) ?? '');",
+              "    if (val !== undefined && val !== '' && !params.hasOwnProperty(q.key)) {",
+              "      params[q.key] = val;",
+              "    }",
+              "  }",
+              "});",
+              "",
+              "// Build canonical string: ASCII sort by key, join with & as key=value",
+              "const canonical = Object.keys(params).sort().map(k => `${k}=${params[k]}`).join('&');",
+              "",
+              "// Sign with HMAC-SHA256 using accessKeySecret; output Base64 and URL-encode",
+              "const sigBytes = CryptoJS.HmacSHA256(canonical, accessKeySecret);",
+              "const signatureBase64 = CryptoJS.enc.Base64.stringify(sigBytes);",
+              "const signatureEncoded = encodeURIComponent(signatureBase64);",
+              "",
+              "// Expose variables to be injected into the URL query",
+              "pm.environment.set('timestamp', timestamp);",
+              "pm.environment.set('nonce', nonce);",
+              "pm.environment.set('algorithm', 'hmac-sha256');",
+              "pm.environment.set('signature', signatureEncoded);",
+              "",
+              "// Optional debug",
+              "console.log('canonical:', canonical);",
+              "console.log('signature(base64):', signatureBase64);"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

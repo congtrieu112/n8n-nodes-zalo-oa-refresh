@@ -15,7 +15,7 @@ export class ZaloOaRefreshToken implements INodeType {
 		name: 'zaloOaRefreshToken',
 		icon: 'file:zalo.svg',
 		group: ['Zalo'],
-		version: 1,
+		version: 2,
 		subtitle: 'Refresh Zalo Official Account access token',
 		description: 'Automatically refresh Zalo OA access token using refresh token',
 		defaults: {
@@ -63,6 +63,18 @@ export class ZaloOaRefreshToken implements INodeType {
 				},
 			},
 			{
+				displayName: 'Force Fresh Credential',
+				name: 'forceFreshCredential',
+				type: 'boolean',
+				default: true,
+				description: 'Force getting fresh credentials from database to ensure latest tokens are used',
+				displayOptions: {
+					show: {
+						operation: ['refreshToken'],
+					},
+				},
+			},
+			{
 				displayName: 'Return Access Token',
 				name: 'returnAccessToken',
 				type: 'boolean',
@@ -82,16 +94,16 @@ export class ZaloOaRefreshToken implements INodeType {
 		const returnData: INodeExecutionData[] = [];
 		const operation = this.getNodeParameter('operation', 0) as string;
 
-		// Get credentials
-		const credentials = await this.getCredentials('zaloOaApi');
-		const appId = credentials.appId as string;
-		const secretKey = credentials.secretKey as string;
-		const refreshToken = credentials.refreshToken as string;
-		const currentAccessToken = credentials.accessToken as string;
-		const currentExpiresAt = credentials.expiresAt as string;
-
 		for (let i = 0; i < items.length; i++) {
 			try {
+				// Get fresh credentials for each iteration to ensure we have the latest tokens
+				const credentials = await this.getCredentials('zaloOaApi');
+				const appId = credentials.appId as string;
+				const secretKey = credentials.secretKey as string;
+				const refreshToken = credentials.refreshToken as string;
+				const currentAccessToken = credentials.accessToken as string;
+				const currentExpiresAt = credentials.expiresAt as string;
+
 				if (operation === 'refreshToken') {
 					// Get autoUpdateCredential parameter for refreshToken operation
 					const autoUpdateCredential = this.getNodeParameter('autoUpdateCredential', i) as boolean;
